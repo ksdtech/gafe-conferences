@@ -1,0 +1,11 @@
+.DS_Store
+*.pyc
+
+# ignore secret/server-specific files
+client_secrets.json
+service_account.json
+config.py
+
+# ignore third-party dependencies.
+lib/*
+static/js/*

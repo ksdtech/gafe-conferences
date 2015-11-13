@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Booking Form</title>
+</head>
+<body>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class="flashes">
+    {% for category, message in messages %}
+      <li class="{{ category }}">{{ message }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+<h1>Booking Form</h1>
+<form action="{{ url_for('booking', uid=uid, date_str=date_str, time_str=time_str) }}" method="POST">
+{{ form.csrf_token }}
+{{ form.start_time }}
+{{ form.end_time }}
+{{ form.timezone }}
+<p>Your email address<br>{{ form.email(size=60) }}</p>
+<p>Your phone number<br>{{ form.phone(size=30) }}</p>
+<p>Your student's first name<br>{{ form.first_name(size=30) }}</p>
+<p>Your student's last name<br>{{ form.last_name(size=30) }}</p>
+<p>Any notes for the teacher<br>{{ form.notes(cols=60, rows=4) }}</p>
+<p><input type="submit" name="submit" value="Submit"></p>
+</form>
+<p><a href="{{ url_for('index') }}">Home</a></p>
+</body>
+</html>

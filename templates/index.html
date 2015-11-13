@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Hello</title>
+</head>
+<body>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class="flashes">
+    {% for category, message in messages %}
+      <li class="{{ category }}">{{ message }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+<h1>Hello</h1>
+{% if not user.is_anonymous %}
+<p>Hello, {{ user.first_name }}!</p>
+<p>Your schedule is currently <strong>{{ 'ONLINE' if user.booking_is_available() else 'OFFLINE' }}</strong> for booking.</p>
+<p><a href="{{ url_for('prefs') }}">Scheduling preferences</a></p>
+<p><a href="{{ url_for('days') }}">Day preferences</a></p>
+<p><a href="{{ url_for('sched') }}">Preview</a></p>
+<p><a href="{{ url_for('logout') }}">Log out</a></p>
+{% else %}
+<p>Hello, world!</p>
+<p><a href="{{ url_for('login') }}">Log in</a></p>
+{% endif %}
+</body>
+</html>

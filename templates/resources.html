@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Resources</title>
+</head>
+<body>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class="flashes">
+    {% for category, message in messages %}
+      <li class="{{ category }}">{{ message }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+<h1>Resources</h1>
+<table>
+<tr>
+<td>Name</td>
+<td>Location</td>
+<td>View Calendar</td>
+</tr>
+{% for user in resources %}
+<tr>
+<td>{{ user.prefs.display_name }}</td>
+<td>{{ user.prefs.location }}</td>
+<td><a href="{{ url_for('calendar', uid=user.key.urlsafe()) }}">View Calendar</a></td>
+</tr>
+{% endfor %}
+</table>
+<p><a href="{{ url_for('index') }}">Home</a></p>
+</body>
+</html>

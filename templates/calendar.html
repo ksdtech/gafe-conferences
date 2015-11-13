@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Booking Calendar</title>
+<style>
+td.c0 { color: green; }
+td.c1 { color: orange; }
+td.c2, td.c3 { color: red; }
+td.c8, td.c9, td.c10, td.c11 { color: #ADD8E6; }
+</style>
+</head>
+<body>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class="flashes">
+    {% for category, message in messages %}
+      <li class="{{ category }}">{{ message }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+<h1>Book a Conference</h1>
+<h2>Available times for {{ resource.prefs.display_name }} - Week of {{ limits['week_start'] }}</h2>
+<table>
+<tr>
+{% for d in limits['week_dates'] %}
+<td>{{ d.strftime('%A %b %-d, %Y') }}</td>
+{% endfor %}
+</tr>
+{% for t in limits['times'] %}
+<tr>
+{% for d in limits['week_dates'] %}
+{% set status = slot_at(slots, d, t, tz) %}
+<td class="c{{ status }}">
+{% if status == 0 %}
+<a href="{{ url_for('booking', uid=uid, date_str=d.strftime('%Y-%m-%d'), time_str=t.strftime('%H-%M')) }}">{{ time_range(d, t, tz, duration) }}</a>
+{% else %}
+{{ time_range(d, t, tz, duration) }}
+{% endif %}
+</td>
+{% endfor %}
+</tr>
+{% endfor %}
+</table>
+<p><a href="{{ url_for('index') }}">Home</a></p>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Day Schedules</title>
+<!-- cdn for modernizr, if you haven't included it already -->
+<script src="static/js/jquery-2.1.4.min.js"></script>
+<!-- polyfiller file to detect and load polyfills -->
+<script src="static/js/js-webshim-1.15.10/polyfiller.js"></script>
+<script>
+  webshims.setOptions('waitReady', false);
+  webshims.setOptions('forms-ext', {types: 'date'});
+  webshims.polyfill('forms forms-ext');
+</script>
+</head>
+<body>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class="flashes">
+    {% for category, message in messages %}
+      <li class="{{ category }}">{{ message }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+<h1>Day Schedules</h1>
+<form action="{{ url_for('days') }}" method="post">
+{{ form.csrf_token }}
+<table>
+<tr>
+<td>Monday&nbsp;{{ form.enabled_0 }}</td>
+<td>Day start&nbsp;{{ form.day_start_time_0 }}</td>
+<td>Lunch start&nbsp;{{ form.lunch_start_time_0 }}</td>
+<td>Lunch end&nbsp;{{ form.lunch_end_time_0 }}</td>
+<td>Day end&nbsp;{{ form.day_end_time_0 }}</td>
+</tr>
+<tr>
+<td>Tuesday&nbsp;{{ form.enabled_1 }}</td>
+<td>Day start&nbsp;{{ form.day_start_time_1 }}</td>
+<td>Lunch start&nbsp;{{ form.lunch_start_time_1 }}</td>
+<td>Lunch end&nbsp;{{ form.lunch_end_time_1 }}</td>
+<td>Day end&nbsp;{{ form.day_end_time_0 }}</td>
+</tr>
+<tr>
+<td>Wednesday&nbsp;{{ form.enabled_2 }}</td>
+<td>Day start&nbsp;{{ form.day_start_time_2 }}</td>
+<td>Lunch start&nbsp;{{ form.lunch_start_time_2 }}</td>
+<td>Lunch end&nbsp;{{ form.lunch_end_time_2 }}</td>
+<td>Day end&nbsp;{{ form.day_end_time_2 }}</td>
+</tr>
+<tr>
+<td>Thursday&nbsp;{{ form.enabled_3 }}</td>
+<td>Day start&nbsp;{{ form.day_start_time_3 }}</td>
+<td>Lunch start&nbsp;{{ form.lunch_start_time_3 }}</td>
+<td>Lunch end&nbsp;{{ form.lunch_end_time_3 }}</td>
+<td>Day end&nbsp;{{ form.day_end_time_3 }}</td>
+</tr>
+<tr>
+<td>Friday&nbsp;{{ form.enabled_4 }}</td>
+<td>Day start&nbsp;{{ form.day_start_time_4 }}</td>
+<td>Lunch start&nbsp;{{ form.lunch_start_time_4 }}</td>
+<td>Lunch end&nbsp;{{ form.lunch_end_time_4 }}</td>
+<td>Day end&nbsp;{{ form.day_end_time_4 }}</td>
+</tr>
+<tr>
+<td>Saturday&nbsp;{{ form.enabled_5 }}</td>
+<td>Day start&nbsp;{{ form.day_start_time_5 }}</td>
+<td>Lunch start&nbsp;{{ form.lunch_start_time_5 }}</td>
+<td>Lunch end&nbsp;{{ form.lunch_end_time_5 }}</td>
+<td>Day end&nbsp;{{ form.day_end_time_5 }}</td>
+</tr>
+<tr>
+<td>Sunday&nbsp;{{ form.enabled_6 }}</td>
+<td>Day start&nbsp;{{ form.day_start_time_6 }}</td>
+<td>Lunch start&nbsp;{{ form.lunch_start_time_6 }}</td>
+<td>Lunch end&nbsp;{{ form.lunch_end_time_6 }}</td>
+<td>Day end&nbsp;{{ form.day_end_time_6 }}</td>
+</tr>
+</table>
+<p><input type="submit" name="submit" value="Submit">
+</form>
+<p><a href="{{ url_for('index') }}">Cancel</a></p>
+</body>
+</html>
