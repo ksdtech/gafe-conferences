@@ -3,6 +3,8 @@ from dateutil import parser as date_parser
 import httplib2
 import pytz
 
+from flask import render_template
+
 from google.appengine.api import memcache
 from google.appengine.ext import ndb
 from apiclient import discovery
@@ -291,7 +293,8 @@ class Attendee(ndb.Model):
     notes = ndb.StringProperty() # 1500 char limit
 
 class Booking(ndb.Model):
-    user = ndb.KeyProperty(kind=User)
+    resource = ndb.KeyProperty(kind=User)
+    title = ndb.StringProperty()
     attendee = ndb.StructuredProperty(Attendee)
     calendar_id = ndb.StringProperty()
     event_id = ndb.StringProperty()
@@ -306,13 +309,45 @@ class Booking(ndb.Model):
     def sendReminder(self, credentials):
         pass
 
-    def createCalendarEvent(self, credentials):
+    def createCalendarEvent(self, credentials, resource):
+        description = render_template('event_description.txt', resource=resource, booking=self)
+        tz = pytz.timezone(self.timezone)
+        start_time = pytz.utc.localize(self.start_time).astimezone(tz).isoformat()
+        end_time = pytz.utc.localize(self.end_time).astimezone(tz).isoformat()
+
+        print "CREATE EVENT start ", start_time
+        print "CREATE EVENT end ", end_time
+        print "CREATE EVENT timezone ", self.timezone
+
+        event = {
+            'summary': self.title,
+            'location': resource.prefs.location,
+            'description': description,
+            'start': {
+                'dateTime': start_time,
+                'timeZone': self.timezone,
+            },
+            'end': {
+                'dateTime': end_time,
+                'timeZone': self.timezone,
+            },
+            'attendees': [
+                { 'email': resource.email },
+                { 'email': self.attendee.email }
+            ]
+        }
+
         # make calendar entry
         http_auth = httplib2.Http(memcache)
         credentials.authorize(http_auth)
         cal_service = discovery.build("calendar", "v3", http=http_auth)
-        self.calendar_id = None
-        self.event_id = None
+
+        calendar = cal_service.calendars().get(calendarId='primary', fields='id').execute()
+        new_event = cal_service.events().insert(calendarId='primary',
+            sendNotifications=True, body=event).execute()
+        self.calendar_id = calendar['id']
+        self.event_id = new_event['id']
+        self.put()
 
     @classmethod
     def createFromPost(cls, credentials, resource, data):
@@ -323,13 +358,19 @@ class Booking(ndb.Model):
         attendee.last_name = data['last_name']
         attendee.notes = data['notes']
 
-        booking = Booking(user=resource.key, attendee=attendee)
-        st = date_parser.parse(data['start_time']).astimezone(pytz.utc).replace(tzinfo=None)
-        et = date_parser.parse(data['end_time']).astimezone(pytz.utc).replace(tzinfo=None)
-        booking.start_time = st
-        booking.end_time = et
+        booking = Booking(resource=resource.key, attendee=attendee)
+        booking.title = resource.prefs.title
+        start_time_utc = date_parser.parse(data['start_time']).astimezone(pytz.utc).replace(tzinfo=None)
+        end_time_utc = date_parser.parse(data['end_time']).astimezone(pytz.utc).replace(tzinfo=None)
+ 
+        print "CREATE BOOKING start ", start_time_utc
+        print "CREATE BOOKING end ", end_time_utc
+        print "CREATE BOOKING timezone ", data['timezone']
+
+        booking.start_time = start_time_utc
+        booking.end_time = end_time_utc
         booking.timezone = data['timezone']
         booking.put()
 
-        booking.createCalendarEvent(credentials)
-        booking.sendReminder(credentials)
+        booking.createCalendarEvent(credentials, resource)
+        # booking.sendReminder(credentials)

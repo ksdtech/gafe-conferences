@@ -86,11 +86,17 @@ SLOT_DEADLINE = 8
 
 @app.context_processor
 def utility_processor():
+    def date_format_local(dt_start):
+        return dt_start.strftime('%A %b %-d, %Y')
+
+    def time_format_local(dt_start, dt_end):
+        return "%s - %s" % (dt_start.strftime('%I:%M %p').lstrip('0'), 
+            dt_end.strftime('%I:%M %p').lstrip('0'))
+
     def time_range(d, t, tz, duration):
         dt_start = tz.localize(datetime.combine(d, t))
         dt_end = dt_start + timedelta(minutes=duration)
-        return "%s - %s" % (dt_start.strftime('%I:%M %p').lstrip('0'), 
-            dt_end.strftime('%I:%M %p').lstrip('0'))
+        return time_format_local(dt_start, dt_end)
 
     def slot_at(slots, d, t, tz):
         status = SLOT_OFF_SCHEDULE
@@ -100,7 +106,10 @@ def utility_processor():
                 status = SLOT_AVAILABLE if s['available'] else SLOT_BUSY
         return status
 
-    return dict(time_range=time_range, slot_at=slot_at)
+    return dict(date_format_local=date_format_local,
+        time_format_local=time_format_local,
+        time_range=time_range, 
+        slot_at=slot_at)
 
 
 # Flask routes
@@ -207,7 +216,7 @@ def calendar(uid, date_str=None):
         if len(limits['dates']) > 0:
             d = limits['dates'][0]
     else:
-        d = date_parser.parse(date_str).day()
+        d = date_parser.parse(date_str).date()
 
     day_offset = d.weekday()
     d -= timedelta(days=day_offset)
@@ -228,21 +237,23 @@ def calendar(uid, date_str=None):
 def booking(uid, date_str, time_str):
     resource = User.getByUrlsafeId(uid)
     tz = resource.getTimezoneObject()
+    duration = resource.prefs.duration
     dt_str = "%s %s" % (date_str, time_str.replace('-', ':', 1))
     dt_start = tz.localize(date_parser.parse(dt_str))
-    dt_end = dt_start + timedelta(minutes=resource.prefs.interval)
-    slot = { 'start': dt_start, 'end': dt_end }
+    dt_end = dt_start + timedelta(minutes=duration)
     form = BookingForm(start_time=dt_start, end_time=dt_end, timezone=tz.zone)
     if request.method == 'POST':
         if form.validate_on_submit():
-            credentials = app.config['service_account_credentials']
+            credentials = resource.credentials # app.config['service_account_credentials']
             booking = Booking.createFromPost(credentials, resource, form.data)
             flash('Your booking succeeded.', 'info')
             return redirect(url_for('calendar', uid=uid, date_str=date_str))
         else:
             flash('Your booking failed. %r' % form.errors, 'error')
-    return render_template('booking.html', uid=uid, date_str=date_str, time_str=time_str, 
-        form=form, resource=resource, slot=slot)
+    return render_template('booking.html', 
+        uid=uid, date_str=date_str, time_str=time_str, 
+        form=form, resource=resource, 
+        dt_start=dt_start, tz=tz, duration=duration)
 
 
 @app.route(app.config['OAUTH2CALLBACK_PATH'])

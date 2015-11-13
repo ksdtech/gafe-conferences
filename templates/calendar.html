@@ -25,7 +25,7 @@ td.c8, td.c9, td.c10, td.c11 { color: #ADD8E6; }
 <table>
 <tr>
 {% for d in limits['week_dates'] %}
-<td>{{ d.strftime('%A %b %-d, %Y') }}</td>
+<td>{{ date_format_local(d) }}</td>
 {% endfor %}
 </tr>
 {% for t in limits['times'] %}

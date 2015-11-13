@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Booking Form</title>
+<title>Reserve a Conference</title>
 </head>
 <body>
 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -14,7 +14,10 @@
     </ul>
   {% endif %}
 {% endwith %}
-<h1>Booking Form</h1>
+<h1>Reserve a Conference</h1>
+<p>With: {{ resource.prefs.display_name }}</p>
+<p>Date: {{ date_format_local(dt_start) }}</p>
+<p>Time: {{ time_range(dt_start.date(), dt_start.time(), tz, duration) }}</p>
 <form action="{{ url_for('booking', uid=uid, date_str=date_str, time_str=time_str) }}" method="POST">
 {{ form.csrf_token }}
 {{ form.start_time }}
