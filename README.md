@@ -99,5 +99,5 @@ see the [Google Cloud Platform github repos](https://github.com/GoogleCloudPlatf
 See [LICENSE](LICENSE)
 
 ## Author
-Python Flask Skeleton for Google App Engine: Logan Henriquez and Johan Euphrosine
+Python Flask Skeleton for Google App Engine: Logan Henriquez and Johan Euphrosine  
 GAFE Conference Manager: Peter Zingg
