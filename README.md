@@ -9,7 +9,8 @@ Google Developers Console.
 1. Clone this repository.
 
 2. Use the [Google Developers Console](https://console.developers.google.com) to create a
-   project, with a unique app id. (App id and project id are identical)
+   project, with a unique app id. For purposes of this README, we use "gafe-conferences"
+   as the app id. (App id and project id are identical)
 
 3. Go to the API Manager section. On the APIs tab, Enable the Calendar, Google+ and Gmail APIs.
    On the Credentials tab, click "Add credentials" and create an OAuth 2.0 client ID. 
@@ -73,15 +74,15 @@ To deploy the application on appspot.com:
    application](https://developers.google.com/appengine/docs/python/tools/uploadinganapp) with
 
    ```
-   appcfg.py -A <your-project-id> --oauth2 update .
+   appcfg.py -A gafe-conferences --oauth2 update .
    ```
 
-Congratulations! Your application is now live at your-app-id.appspot.com
+Congratulations! Your application is now live at gafe-conferences.appspot.com
 
 ## Next Steps
 
 
-### Feedback
+## Feedback
 Star this repo if you found it useful. Use the github issue tracker to give
 feedback on this repo.
 
