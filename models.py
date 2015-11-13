@@ -12,11 +12,6 @@ from oauth2client.appengine import CredentialsNDBProperty
 
 from flask_login import UserMixin, make_secure_token
 
-# Per python .weekday() function
-DAYS_OF_THE_WEEK = [
-    'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
-]
-
 
 def conflict(slot, busy_events):
     return any(e['dt_start'] < slot['end'] and e['dt_end'] > slot['start'] for e in busy_events)
@@ -43,7 +38,6 @@ class UserPrefs(ndb.Model):
 # User 1:7 DayPrefs
 class DayPrefs(ndb.Model):
     position = ndb.IntegerProperty(required=True)
-    name = ndb.StringProperty(required=True)
     enabled = ndb.BooleanProperty(required=True)
     day_start_time = ndb.StringProperty(required=True)
     lunch_start_time = ndb.StringProperty(required=True)
@@ -92,9 +86,11 @@ class User(ndb.Model, UserMixin):
 
     def defaultDayPrefs(self):
         day_prefs = [ ]
-        for position, name in enumerate(DAYS_OF_THE_WEEK):
-            enabled = position <= 4 # Monday-Friday
-            day_pref = DayPrefs(position=position, name=name, enabled=enabled)
+        
+        # Per Python's weekday() function, Monday is 0, Sunday is 6
+        for position in range(7):
+            enabled = position <= 4 # Monday through Friday
+            day_pref = DayPrefs(position=position, enabled=enabled)
             day_pref.day_start_time = '07:00'
             day_pref.lunch_start_time = '08:15'
             day_pref.lunch_end_time = '12:30'
@@ -108,7 +104,8 @@ class User(ndb.Model, UserMixin):
         cal_service = discovery.build("calendar", "v3", http=http_auth)
         busy_events = [ ]
         page_token = None
-        print "GET BUSY ", dt_from
+
+        # print "GET BUSY ", dt_from
         while True:
             result = cal_service.events().list(
                 calendarId=calendar_id, 
@@ -119,6 +116,7 @@ class User(ndb.Model, UserMixin):
                 timeZone=self.prefs.timezone,
                 pageToken=page_token).execute()
             events = result['items']
+
             # print "EVENTS: ", events
             for e in events:
                 if e.get('transparency') != 'transparent':
@@ -309,17 +307,18 @@ class Booking(ndb.Model):
     def sendReminder(self, credentials):
         pass
 
-    def createCalendarEvent(self, credentials, resource):
+    def createCalendarEvent(self, resource):
         description = render_template('event_description.txt', resource=resource, booking=self)
         tz = pytz.timezone(self.timezone)
         start_time = pytz.utc.localize(self.start_time).astimezone(tz).isoformat()
         end_time = pytz.utc.localize(self.end_time).astimezone(tz).isoformat()
 
-        print "CREATE EVENT start ", start_time
-        print "CREATE EVENT end ", end_time
-        print "CREATE EVENT timezone ", self.timezone
+        # print "CREATE EVENT start ", start_time
+        # print "CREATE EVENT end ", end_time
+        # print "CREATE EVENT timezone ", self.timezone
 
         event = {
+            'id': self.key.urlsafe(),
             'summary': self.title,
             'location': resource.prefs.location,
             'description': description,
@@ -332,25 +331,43 @@ class Booking(ndb.Model):
                 'timeZone': self.timezone,
             },
             'attendees': [
-                { 'email': resource.email },
-                { 'email': self.attendee.email }
-            ]
+                { 
+                    'email': resource.email,
+                    'organizer': True
+                },
+                { 
+                    'email': self.attendee.email 
+                } 
+            ],
+            'reminders': {
+                'useDefault': False,
+                'overrides': [ 
+                    {
+                        'method': 'email',
+                        'minutes': 1440
+                    },
+                    {
+                        'method': 'popup',
+                        'minutes': 30
+                    }
+                ]
+            }
         }
 
         # make calendar entry
         http_auth = httplib2.Http(memcache)
-        credentials.authorize(http_auth)
+        resource.credentials.authorize(http_auth)
         cal_service = discovery.build("calendar", "v3", http=http_auth)
 
         calendar = cal_service.calendars().get(calendarId='primary', fields='id').execute()
-        new_event = cal_service.events().insert(calendarId='primary',
-            sendNotifications=True, body=event).execute()
+        new_event = cal_service.events().insert(
+            calendarId='primary', sendNotifications=True, body=event).execute()
         self.calendar_id = calendar['id']
         self.event_id = new_event['id']
         self.put()
 
     @classmethod
-    def createFromPost(cls, credentials, resource, data):
+    def createFromPost(cls, resource, data):
         attendee = Attendee()
         attendee.email = data['email']
         attendee.phone = data['phone']
@@ -363,14 +380,14 @@ class Booking(ndb.Model):
         start_time_utc = date_parser.parse(data['start_time']).astimezone(pytz.utc).replace(tzinfo=None)
         end_time_utc = date_parser.parse(data['end_time']).astimezone(pytz.utc).replace(tzinfo=None)
  
-        print "CREATE BOOKING start ", start_time_utc
-        print "CREATE BOOKING end ", end_time_utc
-        print "CREATE BOOKING timezone ", data['timezone']
+        # print "CREATE BOOKING start ", start_time_utc
+        # print "CREATE BOOKING end ", end_time_utc
+        # print "CREATE BOOKING timezone ", data['timezone']
 
         booking.start_time = start_time_utc
         booking.end_time = end_time_utc
         booking.timezone = data['timezone']
         booking.put()
 
-        booking.createCalendarEvent(credentials, resource)
+        booking.createCalendarEvent(resource)
         # booking.sendReminder(credentials)

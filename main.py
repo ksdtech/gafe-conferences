@@ -59,6 +59,7 @@ login_manager.init_app(app)
 @login_manager.user_loader
 def load_user(user_id):
     user = User.getById(user_id)
+
     # print "LOAD USER: ", user_id, " got ", user
     return user
 
@@ -72,22 +73,26 @@ flow = OAuth2WebServerFlow(
     hd=app.config['GOOGLE_LOGIN_DOMAIN'],
     approval_prompt='force')
 
-# Google OAuth2 setup for service accounts
-app.config['service_account_credentials'] = AppAssertionCredentials(
-    app.config['GOOGLE_SERVICE_ACCOUNT_SCOPE'])
+# Google OAuth2 setup for service accounts, if we ever need to use it
+# app.config['service_account_credentials'] = AppAssertionCredentials(
+#     app.config['GOOGLE_SERVICE_ACCOUNT_SCOPE'])
 
 
+# Flags for booking availabilty
 SLOT_AVAILABLE = 0
 SLOT_OFF_SCHEDULE = 1
 SLOT_BUSY = 2
 SLOT_BOOKED = 3
+
+# Additional flag if it's too early or late to book
 SLOT_DEADLINE = 8
 
 
+# Flask helper functions
 @app.context_processor
 def utility_processor():
-    def date_format_local(dt_start):
-        return dt_start.strftime('%A %b %-d, %Y')
+    def date_format_local(dt_start, day_of_week=True):
+        return dt_start.strftime('%A %b %-d, %Y' if day_of_week else '%b %-d, %Y')
 
     def time_format_local(dt_start, dt_end):
         return "%s - %s" % (dt_start.strftime('%I:%M %p').lstrip('0'), 
@@ -117,19 +122,16 @@ def utility_processor():
 def index():
     return render_template('index.html', user=current_user)
 
-
 @app.route('/login')
 def login():
     authorize_url = flow.step1_get_authorize_url()
     return redirect(authorize_url)
-
 
 @app.route('/logout')
 def logout():
     logout_user()
     flash('You were logged out.', 'info')
     return redirect(url_for('index'))
-
 
 @app.route('/prefs', methods=['GET', 'POST'])
 def prefs():
@@ -138,7 +140,6 @@ def prefs():
         form = UserPrefsForm(obj=user.prefs)
         if request.method == 'POST':
             if form.validate_on_submit():
-                print "FORM DATA: ", form.data
                 form.populate_obj(user.prefs)
                 user.put()
 
@@ -160,7 +161,6 @@ def prefs():
     flash('Access denied.  Please log in via Google Apps.', 'error')
     return redirect(url_for('index'))
 
-
 @app.route('/days', methods=['GET', 'POST'])
 def days():
     user = current_user
@@ -168,7 +168,6 @@ def days():
         form = DayPrefsForm(obj=user)
         if request.method == 'POST':
             if form.validate_on_submit():
-                print "FORM DATA: ", form.data
                 form.populate_obj(user)
                 user.put()
 
@@ -181,27 +180,10 @@ def days():
     flash('Access denied.  Please log in via Google Apps.', 'error')
     return redirect(url_for('index'))
 
-
-@app.route('/sched')
-def sched():
-    user = current_user
-    if user.is_active and not user.is_anonymous and user.auth_type == 'gafe':
-        tz = user.getTimezoneObject()
-        slots = user.getAvailableSlots()
-        limits = user.getSlotLimits(slots, False)
-        return render_template('sched.html', user=user, 
-            duration=user.prefs.duration, tz=tz,
-            slots=slots, limits=limits)
-
-    flash('Access denied.  Please log in via Google Apps.', 'error')
-    return redirect(url_for('index'))
-
-
 @app.route('/resources')
 def resources():
     resources = User.getAvailableResources()
     return render_template('resources.html', resources=resources)
-
 
 @app.route('/calendar/<uid>')
 @app.route('/calendar/<uid>/<date_str>')
@@ -220,18 +202,23 @@ def calendar(uid, date_str=None):
 
     day_offset = d.weekday()
     d -= timedelta(days=day_offset)
-    week_end = d + timedelta(days=7)
+    week_prev = d - timedelta(days=7)
+    week_next = d + timedelta(days=7)
+    date_str = d.strftime('%Y-%m-%d')
+    date_prev = week_prev.strftime('%Y-%m-%d')
+    date_next = week_next.strftime('%Y-%m-%d')
+
     limits['week_start'] = d
     week_dates = [ ]
-    while d < week_end:
+    while d < week_next:
         if d in limits['dates']:
             week_dates.append(d)
         d += timedelta(days=1)
     limits['week_dates'] = week_dates
     return render_template('calendar.html', uid=uid, date_str=date_str, 
+        date_prev=date_prev, date_next=date_next,
         resource=resource, duration=resource.prefs.duration, tz=tz,
         slots=slots, limits=limits)
-
 
 @app.route('/booking/<uid>/<date_str>/<time_str>', methods=['GET', 'POST'])
 def booking(uid, date_str, time_str):
@@ -244,8 +231,7 @@ def booking(uid, date_str, time_str):
     form = BookingForm(start_time=dt_start, end_time=dt_end, timezone=tz.zone)
     if request.method == 'POST':
         if form.validate_on_submit():
-            credentials = resource.credentials # app.config['service_account_credentials']
-            booking = Booking.createFromPost(credentials, resource, form.data)
+            booking = Booking.createFromPost(resource, form.data)
             flash('Your booking succeeded.', 'info')
             return redirect(url_for('calendar', uid=uid, date_str=date_str))
         else:
@@ -255,13 +241,14 @@ def booking(uid, date_str, time_str):
         form=form, resource=resource, 
         dt_start=dt_start, tz=tz, duration=duration)
 
-
+# Special route for OAuth2 login (step 1)
+# Must match the "redirect URI" in the Google console/client_secrets.json file
 @app.route(app.config['OAUTH2CALLBACK_PATH'])
 def oauth2callback():
     error = request.args.get('error', None)
     code = request.args.get('code', None)
-    # print 'CODE: ', code
 
+    # print 'CODE: ', code
     if error is not None or code is None:
         if error == 'access_denied':
             error = 'The user denied access.'
@@ -273,15 +260,16 @@ def oauth2callback():
         return redirect(url_for('index'))
  
     credentials = flow.step2_exchange(code)
+
     # print 'ACCESS_TOKEN: ', credentials.access_token
-
     user, create = User.fromCredentials(credentials)
-    # print 'USER: ', user.get_id()
 
+    # print 'USER: ', user.get_id()
     login_user(user, force=True, fresh=True)
     flash('You were logged in.', 'info')
     return redirect(url_for('index'))
 
 
+# Start the app locally, based on settings in config.py
 if __name__ == '__main__':
     app.run(host=app.config['HOSTNAME'], port=app.config['PORT'])

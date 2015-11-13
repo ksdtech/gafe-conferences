@@ -20,11 +20,12 @@
 <p>Your schedule is currently <strong>{{ 'ONLINE' if user.booking_is_available() else 'OFFLINE' }}</strong> for booking.</p>
 <p><a href="{{ url_for('prefs') }}">Scheduling preferences</a></p>
 <p><a href="{{ url_for('days') }}">Day preferences</a></p>
-<p><a href="{{ url_for('sched') }}">Preview</a></p>
+<p><a href="{{ url_for('calendar', uid=user.key.urlsafe()) }}">Preview my calendar</a></p>
 <p><a href="{{ url_for('logout') }}">Log out</a></p>
 {% else %}
 <p>Hello, world!</p>
-<p><a href="{{ url_for('login') }}">Log in</a></p>
+<p><a href="{{ url_for('resources') }}">Look up teachers</a></p>
+<p><a href="{{ url_for('login') }}">Teacher log in</a></p>
 {% endif %}
 </body>
 </html>

@@ -1,3 +1,10 @@
-You have booked a conference with {{ resource.prefs.display_name }}.
+{{ booking.attendee.first_name }} {{ booking.attendee.last_name }}, {{ booking.attendee.email }}
+has booked a conference with {{ resource.prefs.display_name }}
 
-This booking is managed by gafe-conferences app. [Booking ID {{ booking.key.urlsafe() }}]
+{% if booking.notes %}
+Notes for {{ resource.prefs.display_name }}: 
+{{ booking.attendee.notes }}
+{% endif %}
+
+This booking is managed by the gafe-conferences app. 
+[Booking ID {{ booking.key.urlsafe() }}]

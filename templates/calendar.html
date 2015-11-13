@@ -21,7 +21,11 @@ td.c8, td.c9, td.c10, td.c11 { color: #ADD8E6; }
   {% endif %}
 {% endwith %}
 <h1>Book a Conference</h1>
-<h2>Available times for {{ resource.prefs.display_name }} - Week of {{ limits['week_start'] }}</h2>
+<h2>Available times for {{ resource.prefs.display_name }}</h2>
+<p><a href="{{ url_for('calendar', uid=uid, date_str=date_prev) }}">&lt;&nbsp;Previous</a>
+<strong>Week of {{ date_format_local(limits['week_start'], False) }}</strong>
+<a href="{{ url_for('calendar', uid=uid, date_str=date_next) }}">Next&nbsp;&gt;</a></p>
+{% if limits['week_dates'] %}
 <table>
 <tr>
 {% for d in limits['week_dates'] %}
@@ -43,6 +47,9 @@ td.c8, td.c9, td.c10, td.c11 { color: #ADD8E6; }
 </tr>
 {% endfor %}
 </table>
+{% else %}
+<p>There is no availability this week.</p>
+{% endif %}
 <p><a href="{{ url_for('index') }}">Home</a></p>
 </body>
 </html>
