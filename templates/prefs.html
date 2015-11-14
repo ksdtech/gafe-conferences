@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Your Profile</title>
+<title>Scheduling Preferences</title>
 <!-- cdn for modernizr, if you haven't included it already -->
 <script src="static/js/jquery-2.1.4.min.js"></script>
 <!-- polyfiller file to detect and load polyfills -->
@@ -12,6 +12,9 @@
   webshims.setOptions('forms-ext', {types: 'date'});
   webshims.polyfill('forms forms-ext');
 </script>
+<style>
+table.form td { vertical-align: bottom; }
+</style>
 </head>
 <body>
 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -23,7 +26,7 @@
     </ul>
   {% endif %}
 {% endwith %}
-<h1>Your Profile</h1>
+<h1>Scheduling Preferences</h1>
 <!-- 
 <p>Auth type: {{ user.auth_type }}</p>
 <p>Email: {{ user.email }}</p>
@@ -34,27 +37,51 @@
 -->
 <form action="{{ url_for('prefs') }}" method="post">
 {{ form.csrf_token }}
-<p>Title<br>
-  <input type="text" size="100" name="title" value="{{ user.prefs.title or '' }}"></p>
-<p>Display name<br>
-  <input type="text" size="40" name="display_name" value="{{ user.prefs.display_name or '' }}"></p>
-<p>Location<br>
-  <input type="text" size="40" name="location" value="{{ user.prefs.location.data or '' }}"></p>
-<p>Time zone<br>
-  <input type="text" size="40" name="timezone" value="{{ user.prefs.timezone or '' }}"></p>
-<p>First available day<br>
-  <input type="date" name="first_day_scheduled" value="{{ user.prefs.first_day_scheduled or dt_today.date() }}"></p>
-<p>Last available day<br>
-  <input type="date" name="last_day_scheduled" value="{{ user.prefs.last_day_scheduled or dt_next_week.date() }}"></p>
-<p>Booking start date and time (optional)<br>
-  <input type="date" name="booking_start_date" value="{{ user.prefs.booking_start_date or dt_today.date() }}">&nbsp;{{ form.booking_start_time }}</p>
-<p>Booking end date and time (optional)<br>
-  <input type="date" name="booking_end_date" value="{{ user.prefs.booking_end_date or dt_next_week.date() }}">&nbsp;{{ form.booking_end_time }}</p>
-<p>Minimum booking notice period (hours)<br>
-  <input type="text" size="10" name="minimum_notice_hours" value="{{ user.prefs.minimum_notice_hours or 0 }}"></p>
-<p>Starting day of week<br>
-  {{ form.weekday_start }}
-</p>
+<table class="form">
+<tr>
+<td colspan="2">Title<br>
+{{ form.title(size=60) }}</td>
+</tr>
+<tr>
+<td>Display name<br>
+{{ form.display_name(size=40) }}</td>
+<td>Starting day of week on<br>
+booking calendar view<br>
+{{ form.weekday_start }}</td>
+</tr>
+<tr>
+<td>Location<br>
+{{ form.location(size=40) }}</td>
+<td>Time zone<br>
+{{ form.timezone }}</td>
+</tr>
+<tr>
+<td>Interval between conferences, minutes<br>
+(including passing time)<br>
+{{ form.interval(size=10) }}</td>
+<td>Duration of conference, minutes<br>
+(actual time of conference session)<br>
+{{ form.duration(size=10) }}</td>
+</tr>
+<tr>
+<td>First day for conferences (required)<br>
+{{ form.first_day_scheduled }}</td>
+<td>Last day for conferences (required)<br>
+{{ form.last_day_scheduled  }}</td>
+</tr>
+<tr>
+<td>Start date and time for booking access<br>
+(optional)<br>
+{{ form.booking_start_date }}&nbsp;{{ form.booking_start_time(size=10, placeholder='like 10:00 AM') }}</td>
+<td>End date and time for booking access<br>
+(optional)<br>
+{{ form.booking_end_date }}&nbsp;{{ form.booking_end_time(size=10, placeholder='like 10:00 AM') }}</td>
+</tr>
+<tr>
+<td colspan="2">Minimum booking notice period, hours<br>
+{{ form.minimum_notice_hours(size=10) }}</td>
+</tr>
+</table>
 <p><input type="submit" name="submit" value="Submit">
 </form>
 <p><a href="{{ url_for('index') }}">Cancel</a></p>

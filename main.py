@@ -117,6 +117,13 @@ def utility_processor():
         slot_at=slot_at)
 
 
+def flash_form_errors(msg, form):
+    flash(msg + ' Please correct these fields and re-submit.', 'error')
+    for field, errors in form.errors.items():
+        for error in errors:
+            flash('> %s: %s' % (getattr(form, field).label.text, error), 'error')
+
+
 # Flask routes
 @app.route('/')
 def index():
@@ -146,7 +153,7 @@ def prefs():
                 flash('Your preferences were updated.', 'info')
                 return redirect(url_for('index'))
             else:
-                flash('Your preferences could not be updated. %r' % form.errors, 'error')
+                flash_form_errors('Your preferences could not be updated.', form)
 
         tz = user.getTimezoneObject()
         today = date.today()
@@ -174,7 +181,7 @@ def days():
                 flash('Your preferences were updated.', 'info')
                 return redirect(url_for('index'))
             else:
-                flash('Your preferences could not be updated. %r' % form.errors, 'error')
+                flash_form_errors('Your preferences could not be updated.', form)
         return render_template('days.html', user=user, form=form)
 
     flash('Access denied.  Please log in via Google Apps.', 'error')
@@ -235,7 +242,7 @@ def booking(uid, date_str, time_str):
             flash('Your booking succeeded.', 'info')
             return redirect(url_for('calendar', uid=uid, date_str=date_str))
         else:
-            flash('Your booking failed. %r' % form.errors, 'error')
+            flash_form_errors('Your booking failed.', form)
     return render_template('booking.html', 
         uid=uid, date_str=date_str, time_str=time_str, 
         form=form, resource=resource, 

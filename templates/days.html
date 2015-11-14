@@ -12,6 +12,9 @@
   webshims.setOptions('forms-ext', {types: 'date'});
   webshims.polyfill('forms forms-ext');
 </script>
+<style>
+table.form td { vertical-align: bottom; }
+</style>
 </head>
 <body>
 {% with messages = get_flashed_messages(with_categories=true) %}
@@ -26,55 +29,62 @@
 <h1>Day Schedules</h1>
 <form action="{{ url_for('days') }}" method="post">
 {{ form.csrf_token }}
-<table>
+<table class="form">
 <tr>
-<td>Monday&nbsp;{{ form.enabled_0 }}</td>
-<td>Day start&nbsp;{{ form.day_start_time_0 }}</td>
-<td>Lunch start&nbsp;{{ form.lunch_start_time_0 }}</td>
-<td>Lunch end&nbsp;{{ form.lunch_end_time_0 }}</td>
-<td>Day end&nbsp;{{ form.day_end_time_0 }}</td>
+<td>&nbsp;</td>
+<td>Day start</td>
+<td>Lunch start</td>
+<td>Lunch end</td>
+<td>Day end</td>
 </tr>
 <tr>
-<td>Tuesday&nbsp;{{ form.enabled_1 }}</td>
-<td>Day start&nbsp;{{ form.day_start_time_1 }}</td>
-<td>Lunch start&nbsp;{{ form.lunch_start_time_1 }}</td>
-<td>Lunch end&nbsp;{{ form.lunch_end_time_1 }}</td>
-<td>Day end&nbsp;{{ form.day_end_time_0 }}</td>
+<td>{{ form.enabled_0(size=10) }}&nbsp;Monday</td>
+<td>{{ form.day_start_time_0(size=10) }}</td>
+<td>{{ form.lunch_start_time_0(size=10) }}</td>
+<td>{{ form.lunch_end_time_0(size=10) }}</td>
+<td>{{ form.day_end_time_0(size=10) }}</td>
 </tr>
 <tr>
-<td>Wednesday&nbsp;{{ form.enabled_2 }}</td>
-<td>Day start&nbsp;{{ form.day_start_time_2 }}</td>
-<td>Lunch start&nbsp;{{ form.lunch_start_time_2 }}</td>
-<td>Lunch end&nbsp;{{ form.lunch_end_time_2 }}</td>
-<td>Day end&nbsp;{{ form.day_end_time_2 }}</td>
+<td>{{ form.enabled_1(size=10) }}&nbsp;Tuesday</td>
+<td>{{ form.day_start_time_1(size=10) }}</td>
+<td>{{ form.lunch_start_time_1(size=10) }}</td>
+<td>{{ form.lunch_end_time_1(size=10) }}</td>
+<td>{{ form.day_end_time_1(size=10) }}</td>
 </tr>
 <tr>
-<td>Thursday&nbsp;{{ form.enabled_3 }}</td>
-<td>Day start&nbsp;{{ form.day_start_time_3 }}</td>
-<td>Lunch start&nbsp;{{ form.lunch_start_time_3 }}</td>
-<td>Lunch end&nbsp;{{ form.lunch_end_time_3 }}</td>
-<td>Day end&nbsp;{{ form.day_end_time_3 }}</td>
+<td>{{ form.enabled_2(size=10) }}&nbsp;Wednesday</td>
+<td>{{ form.day_start_time_2(size=10) }}</td>
+<td>{{ form.lunch_start_time_2(size=10) }}</td>
+<td>{{ form.lunch_end_time_2(size=10) }}</td>
+<td>{{ form.day_end_time_2(size=10) }}</td>
 </tr>
 <tr>
-<td>Friday&nbsp;{{ form.enabled_4 }}</td>
-<td>Day start&nbsp;{{ form.day_start_time_4 }}</td>
-<td>Lunch start&nbsp;{{ form.lunch_start_time_4 }}</td>
-<td>Lunch end&nbsp;{{ form.lunch_end_time_4 }}</td>
-<td>Day end&nbsp;{{ form.day_end_time_4 }}</td>
+<td>{{ form.enabled_3(size=10) }}&nbsp;Thursday</td>
+<td>{{ form.day_start_time_3(size=10) }}</td>
+<td>{{ form.lunch_start_time_3(size=10) }}</td>
+<td>{{ form.lunch_end_time_3(size=10) }}</td>
+<td>{{ form.day_end_time_3(size=10) }}</td>
 </tr>
 <tr>
-<td>Saturday&nbsp;{{ form.enabled_5 }}</td>
-<td>Day start&nbsp;{{ form.day_start_time_5 }}</td>
-<td>Lunch start&nbsp;{{ form.lunch_start_time_5 }}</td>
-<td>Lunch end&nbsp;{{ form.lunch_end_time_5 }}</td>
-<td>Day end&nbsp;{{ form.day_end_time_5 }}</td>
+<td>{{ form.enabled_4(size=10) }}&nbsp;Friday</td>
+<td>{{ form.day_start_time_4(size=10) }}</td>
+<td>{{ form.lunch_start_time_4(size=10) }}</td>
+<td>{{ form.lunch_end_time_4(size=10) }}</td>
+<td>{{ form.day_end_time_4(size=10) }}</td>
 </tr>
 <tr>
-<td>Sunday&nbsp;{{ form.enabled_6 }}</td>
-<td>Day start&nbsp;{{ form.day_start_time_6 }}</td>
-<td>Lunch start&nbsp;{{ form.lunch_start_time_6 }}</td>
-<td>Lunch end&nbsp;{{ form.lunch_end_time_6 }}</td>
-<td>Day end&nbsp;{{ form.day_end_time_6 }}</td>
+<td>{{ form.enabled_5(size=10) }}&nbsp;Saturday</td>
+<td>{{ form.day_start_time_5(size=10) }}</td>
+<td>{{ form.lunch_start_time_5(size=10) }}</td>
+<td>{{ form.lunch_end_time_5(size=10) }}</td>
+<td>{{ form.day_end_time_5(size=10) }}</td>
+</tr>
+<tr>
+<td>{{ form.enabled_6(size=10) }}&nbsp;Sunday</td>
+<td>{{ form.day_start_time_6(size=10) }}</td>
+<td>{{ form.lunch_start_time_6(size=10) }}</td>
+<td>{{ form.lunch_end_time_6(size=10) }}</td>
+<td>{{ form.day_end_time_6(size=10) }}</td>
 </tr>
 </table>
 <p><input type="submit" name="submit" value="Submit">
