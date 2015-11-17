@@ -7,7 +7,7 @@
 # using cloud.google.com/console use the "project id" for your application
 # id.
 application: gafe-conferences
-version: 1
+version: beta-1-1
 runtime: python27
 api_version: 1
 threadsafe: yes
@@ -42,5 +42,5 @@ libraries:
 # If you import httplib, by default it will use the urlfetch api. To change this 
 # so that httplib uses sockets instead, you simply add the environment variable to 
 # your app.yaml file for your project.
-env_variables:
-  GAE_USE_SOCKETS_HTTPLIB: 'anyvalue'
+# env_variables:
+#   GAE_USE_SOCKETS_HTTPLIB: 'anyvalue'

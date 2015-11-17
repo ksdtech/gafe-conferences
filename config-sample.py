@@ -13,6 +13,8 @@ protocol = 'http'
 hostname = 'localhost'
 port = 8080
 
+debug = True
+log_level = 'DEBUG'
 secret_key = 'a-very-long-random-key-used-to-hash-csrf-tokens'
 friendly_name = 'KSD Conference System'
 support_email = 'webmaster@kentfieldschools.org'

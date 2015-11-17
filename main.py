@@ -3,6 +3,7 @@
 from datetime import date, datetime, timedelta
 from dateutil import parser as date_parser
 import json
+import logging
 import os
 import pytz
 import six
@@ -26,16 +27,17 @@ app = Flask(__name__)
 # Determine GAE enironment and load private config
 if os.environ.get('SERVER_SOFTWARE', '').startswith('Development'):
     app.config['GAE_SERVER'] = 'dev_appserver'
-    from config_dev import (gafe_domain, hostname, port, protocol, secret_key,
+    from config_dev import (debug as app_debug, log_level, gafe_domain, hostname, port, protocol, secret_key,
         friendly_name, support_email, reminders_expire)
 else:
     app.config['GAE_SERVER'] = 'appengine'
-    from config_gae import (gafe_domain, hostname, port, protocol, secret_key,
+    from config_gae import (debug as app_debug, log_level, gafe_domain, hostname, port, protocol, secret_key,
         friendly_name, support_email, reminders_expire)
 server_name = '%s:%d' % (hostname, port) if ((protocol == 'http' and port != 80) or (protocol == 'https' and port != 443)) else hostname
 
 
 # Flask built-in configs
+app.config['DEBUG'] = app_debug
 app.config['PREFERRED_URL_SCHEME'] = protocol
 app.config['SERVER_NAME'] = server_name
 app.config['SECRET_KEY'] = secret_key
@@ -43,6 +45,7 @@ app.config['SESSION_COOKIE_NAME'] = '_conf_sessions_'
 
 
 # Our stuff
+app.config['LOG_LEVEL'] = log_level
 app.config['FRIENDLY_NAME'] = friendly_name
 app.config['SUPPORT_EMAIL'] = support_email
 app.config['REMINDERS_EXPIRE'] = reminders_expire
@@ -53,9 +56,13 @@ secrets = None
 with open('client_secrets.json') as f:
     secrets = json.load(f)['web']
 
+app.config['OAUTH2CALLBACK_PATH'] = '/oauth2callback'
 app.config['GOOGLE_CLIENT_ID'] = secrets['client_id']
 app.config['GOOGLE_CLIENT_SECRET'] = secrets['client_secret']
-app.config['GOOGLE_LOGIN_REDIRECT_URI'] = secrets['redirect_uris'][0]
+app.config['GOOGLE_LOGIN_REDIRECT_URI'] = '%s://%s%s' % (
+    app.config['PREFERRED_URL_SCHEME'],
+    app.config['SERVER_NAME'], 
+    app.config['OAUTH2CALLBACK_PATH'])
 app.config['GOOGLE_LOGIN_DOMAIN'] = gafe_domain
 app.config['GOOGLE_LOGIN_SCOPE'] = ' '.join([
     'email',
@@ -70,19 +77,18 @@ app.config['GOOGLE_SERVICE_ACCOUNT_SCOPE'] = ' '.join([
     'https://www.googleapis.com/auth/calendar',
     'https://www.googleapis.com/auth/gmail.modify'
 ])
-app.config['OAUTH2CALLBACK_PATH'] = '/oauth2callback'
 
 
 # Flask-Login setup
 login_manager = LoginManager()
-login_manager.session_protection = "strong"
+login_manager.session_protection = 'strong'
 login_manager.init_app(app)
 
 @login_manager.user_loader
 def load_user(user_id):
     user = User.getById(user_id)
 
-    # print "LOAD USER: ", user_id, " got ", user
+    # logging.debug('LOAD USER: %s, got %r' (user_id, user))
     return user
 
 
@@ -91,7 +97,7 @@ flow = OAuth2WebServerFlow(
     app.config['GOOGLE_CLIENT_ID'],
     app.config['GOOGLE_CLIENT_SECRET'],
     app.config['GOOGLE_LOGIN_SCOPE'],
-    app.config['GOOGLE_LOGIN_REDIRECT_URI'],
+    redirect_uri=app.config['GOOGLE_LOGIN_REDIRECT_URI'],
     hd=app.config['GOOGLE_LOGIN_DOMAIN'],
     approval_prompt='force')
 
@@ -123,7 +129,7 @@ def utility_processor():
         return date_format_local(dt_start)
 
     def time_format_local(dt_start, dt_end):
-        return "%s - %s" % (dt_start.strftime('%I:%M %p').lstrip('0'), 
+        return '%s - %s' % (dt_start.strftime('%I:%M %p').lstrip('0'), 
             dt_end.strftime('%I:%M %p').lstrip('0'))
 
     def time_format_from_utc(dt_start_utc, dt_end_utc, tz):
@@ -279,7 +285,7 @@ def booking(uid, date_str, time_str):
     resource = User.getByUrlsafeId(uid)
     tz = resource.getTimezoneObject()
     duration = resource.prefs.duration
-    dt_str = "%s %s" % (date_str, time_str.replace('-', ':', 1))
+    dt_str = '%s %s' % (date_str, time_str.replace('-', ':', 1))
     dt_start = tz.localize(date_parser.parse(dt_str))
     dt_end = dt_start + timedelta(minutes=duration)
     form = BookingForm(start_time=dt_start, end_time=dt_end, timezone=tz.zone)
@@ -325,7 +331,7 @@ def oauth2callback():
     error = request.args.get('error', None)
     code = request.args.get('code', None)
 
-    # print 'CODE: ', code
+    # logging.debug('CODE: %s' % code)
     if error is not None or code is None:
         if error == 'access_denied':
             error = 'The user denied access.'
@@ -338,15 +344,35 @@ def oauth2callback():
  
     credentials = flow.step2_exchange(code)
 
-    # print 'ACCESS_TOKEN: ', credentials.access_token
+    # logging.debug('ACCESS_TOKEN: %s' % credentials.access_token)
     user, create = User.fromCredentials(credentials)
 
-    # print 'USER: ', user.get_id()
+    # logging.debug('USER: %s' % user.get_id())
     login_user(user, force=True, fresh=True)
     flash('You were logged in.', 'info')
     return redirect(url_for('index'))
 
 
+# See the section on <a href="/appengine/docs/python/#Python_App_caching">Requests and App Caching</a> for information on how
+# App Engine reuses your request handlers when you specify a main function
+def main():
+    # Set the logging level in the main function
+    level = { 'CRITICAL': logging.CRITICAL,
+        'ERROR': logging.ERROR,
+        'WARNING': logging.WARNING,
+        'INFO': logging.INFO,
+        'DEBUG': logging.DEBUG }.get(app.config['LOG_LEVEL'], 
+            logging.DEBUG if app.config['DEBUG'] else logging.INFO)
+
+    logging.getLogger().setLevel(level)
+    logging.info('MAIN: server is %s' % app.config['GAE_SERVER'])
+    logging.info(' log level %d' % level)
+    logging.info(' debug %r' % app.config['DEBUG'])
+    app.run(host=app.config['HOSTNAME'], port=app.config['PORT'])
+
+
 # Start the app locally, based on settings in config.py
 if __name__ == '__main__':
-    app.run(host=app.config['HOSTNAME'], port=app.config['PORT'])
+    main()
+
+

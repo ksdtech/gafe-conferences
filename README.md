@@ -9,51 +9,49 @@ Google Developers Console.
 1. Clone this repository.
 
 2. Use the [Google Developers Console](https://console.developers.google.com) to create a
-   project, with a unique app id. For purposes of this README, we use "gafe-conferences"
-   as the app id. (App id and project id are identical)
+    project, with a unique app id. For purposes of this README, we use "gafe-conferences"
+    as the app id. (App id and project id are identical)
 
 3. Go to the API Manager section. On the APIs tab, Enable the Calendar, Google+ and Gmail APIs.
-   On the Credentials tab, click "Add credentials" and create an OAuth 2.0 client ID. 
-   Add "http://localhost:8080" to the "Authorized Javascript origins" and 
-   "http://localhost:8080/oauth2callback" to the "Authorized redirect URIs".  
-   Click the "Download JSON" button, rename the downloaded .json file to
-   "client_secrets.json", and save it in the top level folder of your local repository.
+    On the Credentials tab, click "Add credentials" and create an OAuth 2.0 client ID. 
+    Add "http://localhost:8080" to the "Authorized Javascript origins" and 
+    "http://localhost:8080/oauth2callback" to the "Authorized redirect URIs".  
+    Click the "Download JSON" button, rename the downloaded .json file to
+    "client_secrets.json", and save it in the top level folder of your local repository.
 
 4. [Possibly Add credentials for a "Service account" and download the JSON credentials
-   to "service_account.json" in the top level folder of the repository.]   
+    to "service_account.json" in the top level folder of the repository.]   
 
 5. On the "OAuth consent screen" tab, supply your email address and a display name for your
-   app, like "My District GAFE Conference Manager". Add other information as necessary.
+    app, like "My District GAFE Conference Manager". Add other information as necessary.
 
 6. [Possibly verify your domain if you want to receive Calendar push notifications]
 
 7. Install the [App Engine Python SDK](https://developers.google.com/appengine/downloads).
-   See the README file for directions. You'll need python 2.7 and 
-   [pip 1.4 or later](http://www.pip-installer.org/en/latest/installing.html) installed too.
+    See the README file for directions. You'll need python 2.7 and 
+    [pip 1.4 or later](http://www.pip-installer.org/en/latest/installing.html) installed too.
 
-8. Customize the "config-sample.py" file and save it as "config.py" in the top level 
-   folder of the repository.
+8. Customize the "config-sample.py" file and save it as "config_dev.py" in the top level 
+    folder of the repository.
 
 9. Install dependencies in the project's lib directory.
-   Note: App Engine can only import libraries from inside your project directory.
-
-   ```
-   cd <project directory>
-   rm -rf lib/*
-   pip install -r requirements.txt -t lib
-   ```
+    Note: App Engine can only import libraries from inside your project directory.
+    ```
+    cd <project directory>
+    rm -rf lib/*
+    pip install -r requirements.txt -t lib
+    ```
 
 10. Run the project locally from the command line:
+    ```
+    dev_appserver.py -A gafe-conferences --smtp_host=your.mail.host.com --smtp_port=25 app.yaml 
+    ```
 
-   ```
-   dev_appserver.py -A gafe-conferences --smtp_host=your.mail.host.com --smtp_port=25 app.yaml 
-   ```
+    or, if you want to empty a messed up datastore
 
-   or, if you want to empty a messed up datastore
-
-   ```
-   dev_appserver.py -A gafe-conferences --smtp_host=your.mail.host.com --smtp_port=25--clear_datastore yes app.yaml
-   ```
+    ```
+    dev_appserver.py -A gafe-conferences --smtp_host=your.mail.host.com --smtp_port=25--clear_datastore yes app.yaml
+    ```
 
 Congratulations, your project should be running now!
 
@@ -66,21 +64,27 @@ for options when running dev_appserver.
 To deploy the application on appspot.com:
 
 1. In the [Google Developers Console](https://console.developers.google.com) console, add
-   the appspot.com URIs for the "Authorized Javascript origins" and "Authorized redirect URIs". 
+    the appspot.com URIs for the "Authorized Javascript origins" and "Authorized redirect URIs". 
 
-2. Modify the config.py file with the appropriate hostname, port and protocol.
+2. Modify the config_gae.py file with the appropriate debugging levels, protocol, hostname,
+    and port.
 
-3. [Deploy the
-   application](https://developers.google.com/appengine/docs/python/tools/uploadinganapp) with
-
-   ```
-   appcfg.py -A gafe-conferences --oauth2 update .
-   ```
+3. [Deploy the application](https://developers.google.com/appengine/docs/python/tools/uploadinganapp) with:
+    ```
+    appcfg.py -A gafe-conferences --oauth2 update .
+    ```
 
 Congratulations! Your application is now live at gafe-conferences.appspot.com
 
-## Next Steps
-
+## GAE Deployment Problems
+When executing the OAuth2WebServerFlow callback, I was getting this error in the GAE logs:
+    ```
+    FeatureNotEnabledError: The Socket API will be enabled for this application once billing 
+    has been enabled in the admin console.
+    ```
+The exception was thrown as a result of setting the environment variable 
+GAE\_USE\_SOCKETS\_HTTPLIB in app.yaml. Removing it now seems to work for both the
+dev_appserver and hosted Google App Engine.
 
 ## Feedback
 Star this repo if you found it useful. Use the github issue tracker to give

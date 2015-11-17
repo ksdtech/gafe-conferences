@@ -2,18 +2,26 @@ import base64
 from datetime import date, datetime, timedelta
 from dateutil import parser as date_parser
 import httplib2
+import logging
 import pytz
 
 from flask import render_template
+from flask_login import UserMixin, make_secure_token
 
-from google.appengine.api import mail, memcache
+# Google App Engine and API access
+from google.appengine.api import mail
 from google.appengine.ext import ndb
 from apiclient import discovery
 from oauth2client.appengine import CredentialsNDBProperty
 
-from flask_login import UserMixin, make_secure_token
+from google.appengine.api import memcache
+
+# If you are using App Engine, you can connect to the App Engine memcache server easily:
+# from werkzeug.contrib.cache import GAEMemcachedCache
+# cache = GAEMemcachedCache()
 
 
+# Helper function to test for event overlaps
 def conflict(slot, busy_events):
     return any(e['dt_start'] < slot['end'] and e['dt_end'] > slot['start'] for e in busy_events)
 
@@ -100,11 +108,11 @@ class User(ndb.Model, UserMixin):
     def getBusyEvents(self, dt_from, dt_to, calendar_id='primary'):
         http_auth = httplib2.Http(memcache)
         self.credentials.authorize(http_auth)
-        cal_service = discovery.build("calendar", "v3", http=http_auth)
+        cal_service = discovery.build('calendar', 'v3', http=http_auth)
         busy_events = [ ]
         page_token = None
 
-        # print "GET BUSY ", dt_from
+        # logging.debug('GET BUSY from %s to %s' % (dt_from, dt_to))
         while True:
             result = cal_service.events().list(
                 calendarId=calendar_id, 
@@ -116,7 +124,7 @@ class User(ndb.Model, UserMixin):
                 pageToken=page_token).execute()
             events = result['items']
 
-            # print "EVENTS: ", events
+            # logging.debug('EVENTS: %r' % events)
             for e in events:
                 if e.get('transparency') != 'transparent':
                     dt_start = date_parser.parse(e['start']['dateTime'])
@@ -265,7 +273,7 @@ class User(ndb.Model, UserMixin):
     def fromCredentials(cls, credentials):
         http_auth = httplib2.Http(memcache)
         credentials.authorize(http_auth)
-        plus_service = discovery.build("plus", "v1", http=http_auth)
+        plus_service = discovery.build('plus', 'v1', http=http_auth)
         profile = plus_service.people().get(userId='me').execute()
         email = profile['emails'][0]['value'].lower()
         user = None
@@ -328,10 +336,10 @@ class Booking(ndb.Model):
         event_id = None
         # event_id =  base64.b32encode(self.key.urlsafe()).rstrip('=').lower()
 
-        # print "CREATE EVENT id ", event_id
-        # print "CREATE EVENT start ", start_time
-        # print "CREATE EVENT end ", end_time
-        # print "CREATE EVENT timezone ", self.timezone
+        # logging.debug('CREATE EVENT id %r' % event_id)
+        # logging.debug('CREATE EVENT start %s' % start_time)
+        # logging.debug('CREATE EVENT end %s' %  end_time)
+        # logging.debug('CREATE EVENT timezone %s' % self.timezone)
 
         event = {
             'id': event_id,
@@ -373,7 +381,7 @@ class Booking(ndb.Model):
         # make calendar entry
         http_auth = httplib2.Http(memcache)
         resource.credentials.authorize(http_auth)
-        cal_service = discovery.build("calendar", "v3", http=http_auth)
+        cal_service = discovery.build('calendar', 'v3', http=http_auth)
 
         calendar = cal_service.calendars().get(calendarId='primary').execute()
         new_event = cal_service.events().insert(
@@ -402,9 +410,9 @@ class Booking(ndb.Model):
         start_time_utc = date_parser.parse(data['start_time']).astimezone(pytz.utc).replace(tzinfo=None)
         end_time_utc = date_parser.parse(data['end_time']).astimezone(pytz.utc).replace(tzinfo=None)
  
-        # print "CREATE BOOKING start ", start_time_utc
-        # print "CREATE BOOKING end ", end_time_utc
-        # print "CREATE BOOKING timezone ", data['timezone']
+        # logging.debug('CREATE BOOKING start %s' % start_time_utc)
+        # logging.debug('CREATE BOOKING end %s' % end_time_utc)
+        # logging.debug('CREATE BOOKING timezone %s' % data['timezone'])
 
         booking.start_time = start_time_utc
         booking.end_time = end_time_utc
@@ -474,8 +482,8 @@ class RemindersToken(ndb.Model):
             reminders_url=reminders_url, config=app_config, 
             email=email, token=reminders_token.key.urlsafe())
 
-        print "SENDING MESSAGE"
-        print body
+        logging.debug('SEND MESSAGE to %s' % email)
+        loggind.debug(body)
 
         message = mail.EmailMessage(
             sender=app_config['SUPPORT_EMAIL'],
