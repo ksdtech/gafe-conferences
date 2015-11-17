@@ -5,6 +5,8 @@
 client_secrets.json
 service_account.json
 config.py
+config_dev.py
+config_gae.py
 
 # ignore third-party dependencies.
 lib/*

@@ -3,6 +3,7 @@
 from datetime import date, datetime, timedelta
 from dateutil import parser as date_parser
 import json
+import os
 import pytz
 import six
 
@@ -17,14 +18,22 @@ from oauth2client.appengine import AppAssertionCredentials
 # Applicaition-specific modules
 from models import User, Booking, RemindersToken
 from forms import UserPrefsForm, DayPrefsForm, BookingForm, RemindersForm
-from config import (gafe_domain, hostname, port, protocol, secret_key,
-    friendly_name, support_email, reminders_expire)
 
 
 # Flask setup
 app = Flask(__name__)
 
+# Determine GAE enironment and load private config
+if os.environ.get('SERVER_SOFTWARE', '').startswith('Development'):
+    app.config['GAE_SERVER'] = 'dev_appserver'
+    from config_dev import (gafe_domain, hostname, port, protocol, secret_key,
+        friendly_name, support_email, reminders_expire)
+else:
+    app.config['GAE_SERVER'] = 'appengine'
+    from config_gae import (gafe_domain, hostname, port, protocol, secret_key,
+        friendly_name, support_email, reminders_expire)
 server_name = '%s:%d' % (hostname, port) if ((protocol == 'http' and port != 80) or (protocol == 'https' and port != 443)) else hostname
+
 
 # Flask built-in configs
 app.config['PREFERRED_URL_SCHEME'] = protocol

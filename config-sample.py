@@ -1,4 +1,5 @@
-# Save a copy of this file as config.py
+# Save a copy of this file as config_dev.py to run on dev_appserver
+# Save a copy of this file as config_gae.py to run on Google App Engine
 
 # Customize this to your GAFE domain
 gafe_domain = 'example.org'
