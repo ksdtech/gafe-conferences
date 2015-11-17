@@ -1,3 +1,4 @@
+import base64
 from datetime import date, datetime, timedelta
 from dateutil import parser as date_parser
 import httplib2
@@ -5,7 +6,7 @@ import pytz
 
 from flask import render_template
 
-from google.appengine.api import memcache
+from google.appengine.api import mail, memcache
 from google.appengine.ext import ndb
 from apiclient import discovery
 from oauth2client.appengine import CredentialsNDBProperty
@@ -34,7 +35,6 @@ class UserPrefs(ndb.Model):
     minimum_notice_hours = ndb.IntegerProperty(required=True, default=36)
     weekday_start = ndb.IntegerProperty(required=True, default=1)
 
-
 # User 1:7 DayPrefs
 class DayPrefs(ndb.Model):
     position = ndb.IntegerProperty(required=True)
@@ -43,7 +43,6 @@ class DayPrefs(ndb.Model):
     lunch_start_time = ndb.StringProperty(required=True)
     lunch_end_time = ndb.StringProperty(required=True)
     day_end_time = ndb.StringProperty(required=True)
-
 
 class User(ndb.Model, UserMixin):
     credentials = CredentialsNDBProperty()
@@ -227,13 +226,19 @@ class User(ndb.Model, UserMixin):
 
     @classmethod
     def getById(cls, user_id):
-        key = ndb.Key('User', user_id)
-        return key.get()
+        try:
+            key = ndb.Key('User', user_id)
+            return key.get()
+        except:
+            return None
 
     @classmethod
     def getByUrlsafeId(cls, uid):
-        key = ndb.Key(urlsafe=uid)
-        return key.get()
+        try:
+            key = ndb.Key(urlsafe=uid)
+            return key.get()
+        except:
+            return None
 
     @classmethod
     def getAvailableResources(cls):
@@ -283,6 +288,13 @@ class User(ndb.Model, UserMixin):
             user.put()
         return (user, create)
 
+
+class Event(ndb.Model):
+    location = ndb.StringProperty()
+    calendar_id = ndb.StringProperty()
+    event_id = ndb.StringProperty()
+    url = ndb.StringProperty()
+
 class Attendee(ndb.Model):
     email = ndb.StringProperty()
     phone = ndb.StringProperty()
@@ -293,9 +305,9 @@ class Attendee(ndb.Model):
 class Booking(ndb.Model):
     resource = ndb.KeyProperty(kind=User)
     title = ndb.StringProperty()
+    organizer_name = ndb.StringProperty()
     attendee = ndb.StructuredProperty(Attendee)
-    calendar_id = ndb.StringProperty()
-    event_id = ndb.StringProperty()
+    event = ndb.StructuredProperty(Event)
     start_time = ndb.DateTimeProperty()
     end_time = ndb.DateTimeProperty()
     timezone = ndb.StringProperty()
@@ -308,19 +320,23 @@ class Booking(ndb.Model):
         pass
 
     def createCalendarEvent(self, resource):
-        description = render_template('event_description.txt', resource=resource, booking=self)
+        description = render_template('event-description.txt', resource=resource, booking=self)
+        location = resource.prefs.location
         tz = pytz.timezone(self.timezone)
         start_time = pytz.utc.localize(self.start_time).astimezone(tz).isoformat()
         end_time = pytz.utc.localize(self.end_time).astimezone(tz).isoformat()
+        event_id = None
+        # event_id =  base64.b32encode(self.key.urlsafe()).rstrip('=').lower()
 
+        # print "CREATE EVENT id ", event_id
         # print "CREATE EVENT start ", start_time
         # print "CREATE EVENT end ", end_time
         # print "CREATE EVENT timezone ", self.timezone
 
         event = {
-            'id': self.key.urlsafe(),
+            'id': event_id,
             'summary': self.title,
-            'location': resource.prefs.location,
+            'location': location,
             'description': description,
             'start': {
                 'dateTime': start_time,
@@ -359,11 +375,16 @@ class Booking(ndb.Model):
         resource.credentials.authorize(http_auth)
         cal_service = discovery.build("calendar", "v3", http=http_auth)
 
-        calendar = cal_service.calendars().get(calendarId='primary', fields='id').execute()
+        calendar = cal_service.calendars().get(calendarId='primary').execute()
         new_event = cal_service.events().insert(
             calendarId='primary', sendNotifications=True, body=event).execute()
-        self.calendar_id = calendar['id']
-        self.event_id = new_event['id']
+        
+        self.event = Event()
+        self.event.location = location
+        self.event.calendar_id = calendar['id']
+        self.event.event_id = new_event['id']
+        self.event.url = new_event['htmlLink']
+
         self.put()
 
     @classmethod
@@ -377,6 +398,7 @@ class Booking(ndb.Model):
 
         booking = Booking(resource=resource.key, attendee=attendee)
         booking.title = resource.prefs.title
+        booking.organizer_name = resource.prefs.display_name
         start_time_utc = date_parser.parse(data['start_time']).astimezone(pytz.utc).replace(tzinfo=None)
         end_time_utc = date_parser.parse(data['end_time']).astimezone(pytz.utc).replace(tzinfo=None)
  
@@ -389,5 +411,76 @@ class Booking(ndb.Model):
         booking.timezone = data['timezone']
         booking.put()
 
-        booking.createCalendarEvent(resource)
-        # booking.sendReminder(credentials)
+        try:
+            booking.createCalendarEvent(resource)
+            # booking.sendReminder(credentials)
+        except:
+            booking.key.delete()
+            booking = None
+            raise
+
+        return booking
+
+    @classmethod
+    def getBookingsForResource(cls, resource):
+        qry = Booking.query(Booking.resource == resource.key).order(Booking.start_time)
+        return qry.fetch()
+
+    @classmethod
+    def getBookingsForAttendeeEmail(cls, email):
+        qry = Booking.query(Booking.attendee.email == email).order(Booking.start_time)
+        return qry.fetch()
+
+class RemindersToken(ndb.Model):
+    email = ndb.StringProperty()
+    created = ndb.DateTimeProperty(auto_now_add=True)
+    expires = ndb.DateTimeProperty()
+
+    @classmethod
+    def validateToken(cls, token):
+        email = None
+        try:
+            key = ndb.Key(urlsafe=token)
+            reminders_token = key.get()
+            email = reminders_token.email
+            dt_now_utc = datetime.utcnow()
+            if reminders_token.expires <= dt_now_utc:
+                key.delete()
+                email = None
+        except:
+            pass
+        return email
+
+    @classmethod
+    def invalidateTokensForEmail(cls, email):
+        dt_now_utc = datetime.utcnow()
+        qry = RemindersToken.query(ndb.OR(RemindersToken.expires <= dt_now_utc, 
+            RemindersToken.email == email))
+        for token in qry.fetch():
+            token.key.delete()
+
+    @classmethod
+    def createAndSendToken(cls, email, reminders_url, app_config):
+        email = email.lower()
+        cls.invalidateTokensForEmail(email)
+        dt_now_utc = datetime.utcnow()
+        reminders_token = RemindersToken()
+        reminders_token.email = email
+        reminders_token.created = dt_now_utc
+        reminders_token.expires = dt_now_utc + timedelta(days=app_config['REMINDERS_EXPIRE'])
+        reminders_token.put()
+
+        body = render_template('reminder-message.txt', 
+            reminders_url=reminders_url, config=app_config, 
+            email=email, token=reminders_token.key.urlsafe())
+
+        print "SENDING MESSAGE"
+        print body
+
+        message = mail.EmailMessage(
+            sender=app_config['SUPPORT_EMAIL'],
+            subject='Conference reminders link',
+            to=email,
+            body=body)
+        message.send()
+

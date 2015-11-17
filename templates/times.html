@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Times</title>
+<!-- cdn for modernizr, if you haven't included it already -->
+<script src="static/js/jquery-2.1.4.min.js"></script>
+<!-- polyfiller file to detect and load polyfills -->
+<script src="static/js/js-webshim-1.15.10/polyfiller.js"></script>
+<script>
+  webshims.setOptions('waitReady', false);
+  webshims.setOptions('forms-ext', {types: 'date'});
+  webshims.polyfill('forms forms-ext');
+</script>
+<style>
+table.form td { vertical-align: bottom; }
+</style>
+</head>
+<body>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class="flashes">
+    {% for category, message in messages %}
+      <li class="{{ category }}">{{ message }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+<h1>Times</h1>
+<form action="{{ url_for('times') }}" method="post">
+{{ form.csrf_token }}
+<table class="form">
+<tr>
+<td>&nbsp;</td>
+<td>Monday</td>
+<td>Tuesday</td>
+<td>Wendnesday</td>
+<td>Thursday</td>
+<td>Friday</td>
+<td>Saturday</td>
+<td>Sunday</td>
+</tr>
+<tr>
+<td>Enabled</td>
+<td>{{ form.enabled_0(size=10) }}</td>
+<td>{{ form.enabled_1(size=10) }}</td>
+<td>{{ form.enabled_2(size=10) }}</td>
+<td>{{ form.enabled_3(size=10) }}</td>
+<td>{{ form.enabled_4(size=10) }}</td>
+<td>{{ form.enabled_5(size=10) }}</td>
+<td>{{ form.enabled_6(size=10) }}</td>
+</tr>
+<tr>
+<td>Day start</td>
+<td>{{ form.day_start_time_0(size=10, placeholder='like 7:00 AM') }}</td>
+<td>{{ form.day_start_time_1(size=10, placeholder='like 7:00 AM') }}</td>
+<td>{{ form.day_start_time_2(size=10, placeholder='like 7:00 AM') }}</td>
+<td>{{ form.day_start_time_3(size=10, placeholder='like 7:00 AM') }}</td>
+<td>{{ form.day_start_time_4(size=10, placeholder='like 7:00 AM') }}</td>
+<td>{{ form.day_start_time_5(size=10, placeholder='like 7:00 AM') }}</td>
+<td>{{ form.day_start_time_6(size=10, placeholder='like 7:00 AM') }}</td>
+</tr>
+<tr>
+<td>Lunch start</td>
+<td>{{ form.lunch_start_time_0(size=10, placeholder='like 12:00 PM') }}</td>
+<td>{{ form.lunch_start_time_1(size=10, placeholder='like 12:00 PM') }}</td>
+<td>{{ form.lunch_start_time_2(size=10, placeholder='like 12:00 PM') }}</td>
+<td>{{ form.lunch_start_time_3(size=10, placeholder='like 12:00 PM') }}</td>
+<td>{{ form.lunch_start_time_4(size=10, placeholder='like 12:00 PM') }}</td>
+<td>{{ form.lunch_start_time_5(size=10, placeholder='like 12:00 PM') }}</td>
+<td>{{ form.lunch_start_time_6(size=10, placeholder='like 12:00 PM') }}</td>
+</tr>
+<tr>
+<td>Lunch end</td>
+<td>{{ form.lunch_end_time_0(size=10, placeholder='like 1:00 PM') }}</td>
+<td>{{ form.lunch_end_time_1(size=10, placeholder='like 1:00 PM') }}</td>
+<td>{{ form.lunch_end_time_2(size=10, placeholder='like 1:00 PM') }}</td>
+<td>{{ form.lunch_end_time_3(size=10, placeholder='like 1:00 PM') }}</td>
+<td>{{ form.lunch_end_time_4(size=10, placeholder='like 1:00 PM') }}</td>
+<td>{{ form.lunch_end_time_5(size=10, placeholder='like 1:00 PM') }}</td>
+<td>{{ form.lunch_end_time_6(size=10, placeholder='like 1:00 PM') }}</td>
+</tr>
+<tr>
+<td>Day end</td>
+<td>{{ form.day_end_time_0(size=10, placeholder='like 5:00 PM') }}</td>
+<td>{{ form.day_end_time_1(size=10, placeholder='like 5:00 PM') }}</td>
+<td>{{ form.day_end_time_2(size=10, placeholder='like 5:00 PM') }}</td>
+<td>{{ form.day_end_time_3(size=10, placeholder='like 5:00 PM') }}</td>
+<td>{{ form.day_end_time_4(size=10, placeholder='like 5:00 PM') }}</td>
+<td>{{ form.day_end_time_5(size=10, placeholder='like 5:00 PM') }}</td>
+<td>{{ form.day_end_time_6(size=10, placeholder='like 5:00 PM') }}</td>
+</tr>
+</table>
+<p><input type="submit" name="submit" value="Submit">
+</form>
+<p><a href="{{ url_for('index') }}">Cancel</a></p>
+</body>
+</html>

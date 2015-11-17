@@ -3,6 +3,8 @@
 from datetime import date, datetime, timedelta
 from dateutil import parser as date_parser
 import json
+import pytz
+import six
 
 # Import Flask Framework modules
 from flask import Flask, flash, request, redirect, render_template, session, url_for
@@ -13,17 +15,28 @@ from oauth2client.client import OAuth2WebServerFlow, OAuth2Credentials
 from oauth2client.appengine import AppAssertionCredentials
 
 # Applicaition-specific modules
-from models import User, Booking
-from forms import UserPrefsForm, DayPrefsForm, BookingForm
-from config import gafe_domain, hostname, port, protocol, secret_key
+from models import User, Booking, RemindersToken
+from forms import UserPrefsForm, DayPrefsForm, BookingForm, RemindersForm
+from config import (gafe_domain, hostname, port, protocol, secret_key,
+    friendly_name, support_email, reminders_expire)
+
 
 # Flask setup
 app = Flask(__name__)
-app.config['PROTOCOL'] = protocol
-app.config['HOSTNAME'] = hostname
-app.config['PORT'] = port
+
+server_name = '%s:%d' % (hostname, port) if ((protocol == 'http' and port != 80) or (protocol == 'https' and port != 443)) else hostname
+
+# Flask built-in configs
+app.config['PREFERRED_URL_SCHEME'] = protocol
+app.config['SERVER_NAME'] = server_name
 app.config['SECRET_KEY'] = secret_key
 app.config['SESSION_COOKIE_NAME'] = '_conf_sessions_'
+
+
+# Our stuff
+app.config['FRIENDLY_NAME'] = friendly_name
+app.config['SUPPORT_EMAIL'] = support_email
+app.config['REMINDERS_EXPIRE'] = reminders_expire
 
 
 # Google OAuth2 setup
@@ -94,9 +107,22 @@ def utility_processor():
     def date_format_local(dt_start, day_of_week=True):
         return dt_start.strftime('%A %b %-d, %Y' if day_of_week else '%b %-d, %Y')
 
+    def date_format_from_utc(dt_start_utc, tz):
+        if isinstance(tz, six.string_types):
+            tz = pytz.timezone(tz)
+        dt_start = pytz.utc.localize(dt_start_utc).astimezone(tz)
+        return date_format_local(dt_start)
+
     def time_format_local(dt_start, dt_end):
         return "%s - %s" % (dt_start.strftime('%I:%M %p').lstrip('0'), 
             dt_end.strftime('%I:%M %p').lstrip('0'))
+
+    def time_format_from_utc(dt_start_utc, dt_end_utc, tz):
+        if isinstance(tz, six.string_types):
+            tz = pytz.timezone(tz)
+        dt_start = pytz.utc.localize(dt_start_utc).astimezone(tz)
+        dt_end = pytz.utc.localize(dt_end_utc).astimezone(tz)
+        return time_format_local(dt_start, dt_end)
 
     def time_range(d, t, tz, duration):
         dt_start = tz.localize(datetime.combine(d, t))
@@ -112,7 +138,9 @@ def utility_processor():
         return status
 
     return dict(date_format_local=date_format_local,
+        date_format_from_utc=date_format_from_utc,
         time_format_local=time_format_local,
+        time_format_from_utc=time_format_from_utc,
         time_range=time_range, 
         slot_at=slot_at)
 
@@ -168,8 +196,8 @@ def prefs():
     flash('Access denied.  Please log in via Google Apps.', 'error')
     return redirect(url_for('index'))
 
-@app.route('/days', methods=['GET', 'POST'])
-def days():
+@app.route('/times', methods=['GET', 'POST'])
+def times():
     user = current_user
     if user.is_active and not user.is_anonymous and user.auth_type == 'gafe':
         form = DayPrefsForm(obj=user)
@@ -182,7 +210,17 @@ def days():
                 return redirect(url_for('index'))
             else:
                 flash_form_errors('Your preferences could not be updated.', form)
-        return render_template('days.html', user=user, form=form)
+        return render_template('times.html', user=user, form=form)
+
+    flash('Access denied.  Please log in via Google Apps.', 'error')
+    return redirect(url_for('index'))
+
+@app.route('/bookings')
+def bookings():
+    user = current_user
+    if user.is_active and not user.is_anonymous and user.auth_type == 'gafe':
+        bookings = Booking.getBookingsForResource(user)
+        return render_template('user-bookings.html', bookings=bookings)
 
     flash('Access denied.  Please log in via Google Apps.', 'error')
     return redirect(url_for('index'))
@@ -243,10 +281,33 @@ def booking(uid, date_str, time_str):
             return redirect(url_for('calendar', uid=uid, date_str=date_str))
         else:
             flash_form_errors('Your booking failed.', form)
-    return render_template('booking.html', 
+    return render_template('booking-new.html', 
         uid=uid, date_str=date_str, time_str=time_str, 
         form=form, resource=resource, 
         dt_start=dt_start, tz=tz, duration=duration)
+
+@app.route('/reminders/<token>')
+@app.route('/reminders', methods=['GET', 'POST'])
+def reminders(token=None):
+    if token:
+        email = RemindersToken.validateToken(token)
+        if email:
+            bookings = Booking.getBookingsForAttendeeEmail(email)
+            return render_template('attendee-bookings.html', email=email, bookings=bookings)
+        else:
+            flash('Token invalid or expired', 'error')
+
+    form = RemindersForm()
+    if request.method == 'POST':
+        if form.validate_on_submit():
+            RemindersToken.createAndSendToken(form.email.data, 
+                url_for('reminders', _external=True), app.config)
+
+            flash('Please check your email inbox for a message', 'info')
+            return redirect(url_for('index'))
+
+    return render_template('reminders.html', form=form)
+
 
 # Special route for OAuth2 login (step 1)
 # Must match the "redirect URI" in the Google console/client_secrets.json file

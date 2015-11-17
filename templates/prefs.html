@@ -37,51 +37,35 @@ table.form td { vertical-align: bottom; }
 -->
 <form action="{{ url_for('prefs') }}" method="post">
 {{ form.csrf_token }}
-<table class="form">
-<tr>
-<td colspan="2">Title<br>
-{{ form.title(size=60) }}</td>
-</tr>
-<tr>
-<td>Display name<br>
-{{ form.display_name(size=40) }}</td>
-<td>Starting day of week on<br>
+<p>Title<br>
+{{ form.title(size=60) }}</p>
+<p>Display name<br>
+{{ form.display_name(size=40) }}</p>
+<p>Starting day of week on<br>
 booking calendar view<br>
-{{ form.weekday_start }}</td>
-</tr>
-<tr>
-<td>Location<br>
-{{ form.location(size=40) }}</td>
-<td>Time zone<br>
-{{ form.timezone }}</td>
-</tr>
-<tr>
-<td>Interval between conferences, minutes<br>
+{{ form.weekday_start }}</p>
+<p>Location<br>
+{{ form.location(size=40) }}</p>
+<p>Time zone<br>
+{{ form.timezone }}</p>
+<p>Interval between conferences, minutes<br>
 (including passing time)<br>
-{{ form.interval(size=10) }}</td>
-<td>Duration of conference, minutes<br>
+{{ form.interval(size=10) }}</p>
+<p>Duration of conference, minutes<br>
 (actual time of conference session)<br>
-{{ form.duration(size=10) }}</td>
-</tr>
-<tr>
-<td>First day for conferences (required)<br>
-{{ form.first_day_scheduled }}</td>
-<td>Last day for conferences (required)<br>
-{{ form.last_day_scheduled  }}</td>
-</tr>
-<tr>
-<td>Start date and time for booking access<br>
+{{ form.duration(size=10) }}</p>
+<p>First day for conferences (required)<br>
+{{ form.first_day_scheduled }}</p>
+<p>Last day for conferences (required)<br>
+{{ form.last_day_scheduled  }}</p>
+<p>Start date and time for booking access<br>
 (optional)<br>
-{{ form.booking_start_date }}&nbsp;{{ form.booking_start_time(size=10, placeholder='like 10:00 AM') }}</td>
-<td>End date and time for booking access<br>
+{{ form.booking_start_date }}&nbsp;{{ form.booking_start_time(size=10, placeholder='like 10:00 AM') }}</p>
+<p>End date and time for booking access<br>
 (optional)<br>
-{{ form.booking_end_date }}&nbsp;{{ form.booking_end_time(size=10, placeholder='like 10:00 AM') }}</td>
-</tr>
-<tr>
-<td colspan="2">Minimum booking notice period, hours<br>
-{{ form.minimum_notice_hours(size=10) }}</td>
-</tr>
-</table>
+{{ form.booking_end_date }}&nbsp;{{ form.booking_end_time(size=10, placeholder='like 10:00 AM') }}</p>
+<p>Minimum booking notice period, hours<br>
+{{ form.minimum_notice_hours(size=10) }}</p>
 <p><input type="submit" name="submit" value="Submit">
 </form>
 <p><a href="{{ url_for('index') }}">Cancel</a></p>

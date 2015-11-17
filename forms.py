@@ -1,15 +1,16 @@
+from datetime import datetime, timedelta, time as dt_time
+from dateutil import parser as date_parser
+import re
+import six
+
 from flask_wtf import Form
 from wtforms import BooleanField, HiddenField, IntegerField, SelectField, StringField, TextAreaField
 from wtforms.fields.html5 import DateField, DateTimeField
 from wtforms.compat import iteritems
 from wtforms.fields import Field
-from wtforms.validators import Optional, Required, ValidationError
+from wtforms.validators import Email, Optional, Required, ValidationError
 from wtforms.widgets import TextInput
  
-from datetime import datetime, timedelta, time as dt_time
-from dateutil import parser as date_parser
-import re
-
 DATEUTIL_TYPEERROR_ISSUE = False
 
 TIMEFIELD_DEFAULT_KWARGS = { 'fuzzy': True } # 'default': datetime(1970, 1, 1) }
@@ -64,8 +65,10 @@ class StringTimeField(Field):
                 dt = None
                 if type(value) is datetime:
                     dt = value
-                else:
+                elif isinstance(value, six.string_types):
                     dt = date_parser.parse(value, **self.parse_kwargs)
+                else:
+                    raise TypeError('Not a datetime.time, datetime.datetime, or string')
                 self.data = dt.time()
             except (ValueError, TypeError):
                 self.data = None
@@ -291,8 +294,12 @@ class BookingForm(Form):
     start_time = HiddenField()
     end_time = HiddenField()
     timezone = HiddenField()
-    email = StringField(validators=(Required(),))
+    email = StringField(validators=(Required(),Email()))
     phone = StringField(validators=(Required(),))
     first_name = StringField(validators=(Required(),))
     last_name = StringField(validators=(Required(),))
     notes = TextAreaField(validators=(Optional(),))
+
+class RemindersForm(Form):
+    email = StringField(validators=(Required(),Email()))
+

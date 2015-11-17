@@ -46,13 +46,13 @@ Google Developers Console.
 10. Run the project locally from the command line:
 
    ```
-   dev_appserver.py -A gafe-conferences app.yaml
+   dev_appserver.py -A gafe-conferences --smtp_host=your.mail.host.com --smtp_port=25 app.yaml 
    ```
 
    or, if you want to empty a messed up datastore
 
    ```
-   dev_appserver.py -A gafe-conferences  --clear_datastore yes app.yaml
+   dev_appserver.py -A gafe-conferences --smtp_host=your.mail.host.com --smtp_port=25--clear_datastore yes app.yaml
    ```
 
 Congratulations, your project should be running now!

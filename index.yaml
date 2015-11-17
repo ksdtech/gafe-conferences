@@ -10,6 +10,16 @@ indexes:
 # automatically uploaded to the admin console when you next deploy
 # your application using appcfg.py.
 
+- kind: Booking
+  properties:
+  - name: attendee.email
+  - name: start_time
+
+- kind: Booking
+  properties:
+  - name: resource
+  - name: start_time
+
 - kind: User
   properties:
   - name: auth_type

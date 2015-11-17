@@ -18,7 +18,7 @@
 <p>With: {{ resource.prefs.display_name }}</p>
 <p>Date: {{ date_format_local(dt_start) }}</p>
 <p>Time: {{ time_range(dt_start.date(), dt_start.time(), tz, duration) }}</p>
-<form action="{{ url_for('booking', uid=uid, date_str=date_str, time_str=time_str) }}" method="POST">
+<form action="{{ url_for('booking', uid=uid, date_str=date_str, time_str=time_str) }}" method="post">
 {{ form.csrf_token }}
 {{ form.start_time }}
 {{ form.end_time }}

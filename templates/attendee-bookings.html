@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Your Bookings</title>
+<style>
+td.c0 { color: green; }
+td.c1 { color: orange; }
+td.c2, td.c3 { color: red; }
+td.c8, td.c9, td.c10, td.c11 { color: #ADD8E6; }
+</style>
+</head>
+<body>
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    <ul class="flashes">
+    {% for category, message in messages %}
+      <li class="{{ category }}">{{ message }}</li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+<h1>Your Bookings</h1>
+{% for booking in bookings %}
+<p>Date: {{ date_format_from_utc(booking.start_time, booking.timezone) }}<br/>
+Time: {{ time_format_from_utc(booking.start_time, booking.end_time, booking.timezone) }}<br/>
+Summary: {{ booking.title }}<br/>
+With: {{ booking.organizer_name }}<br/>
+Location: {{ booking.location }}<br/>
+Your Notes: {{ booking.attendee.notes }}<br/>
+ID: {{ booking.key.urlsafe() }}</p>
+{% endfor %}
+<p><a href="{{ url_for('index') }}">Home</a></p>
+</body>
+</html>
